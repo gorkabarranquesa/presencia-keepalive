@@ -1,0 +1,39 @@
+name: Mantener apps Streamlit despiertas
+
+on:
+  # Cron en UTC. Tres pings al día (cada 8 h) sobran para evitar el sleep de 12 h.
+  # Horarios elegidos pensando en cubrir el momento crítico: que la app
+  # ya esté despierta cuando lleguen los empleados de mañana.
+  #
+  #   03:00 UTC = 04:00 invierno (CET) / 05:00 verano (CEST) en España
+  #   11:00 UTC = 12:00 invierno         / 13:00 verano
+  #   19:00 UTC = 20:00 invierno         / 21:00 verano
+  schedule:
+    - cron: "0 3,11,19 * * *"
+
+  # Botón "Run workflow" en la pestaña Actions de GitHub para disparar a mano.
+  # Útil tras un fin de semana largo o si dudas si está dormida.
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar Playwright y Chromium
+        run: |
+          pip install --quiet playwright
+          playwright install --with-deps chromium
+
+      - name: Despertar las apps
+        env:
+          STREAMLIT_URLS: ${{ vars.STREAMLIT_URLS }}
+        run: python wake_apps.py
